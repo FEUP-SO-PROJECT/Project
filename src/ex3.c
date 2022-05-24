@@ -9,10 +9,11 @@
 #define MAX_CYPHER 25
 #define MAX_CYPHER_LENGTH 25
 #define QUOTE_SIZE BUF_SIZE * 10
+#define CYPHER_GAP 100
 
 
 
-void separate_cyphers(char *array, int size,char **cypher_a, char **cypher_b){
+int separate_cyphers(char *array, int size,char **cypher_a, char **cypher_b){
     char* split = strtok(array," ");
     bool flag = true;
     int counter = 0;
@@ -30,6 +31,7 @@ void separate_cyphers(char *array, int size,char **cypher_a, char **cypher_b){
         }
         split=strtok(NULL," ");
     }
+    return counter;
 }
 
 char* insert_array(char *array,int *size,int index,char value){
@@ -41,7 +43,7 @@ char* insert_array(char *array,int *size,int index,char value){
     return array;
 }
 
-void read_cypher(char** cypher_a, char** cypher_b){
+int read_cypher(char** cypher_a, char** cypher_b){
     FILE *fptr = fopen(CYPHER_PATH, "r");
 
     int index_counter = 0;
@@ -75,11 +77,12 @@ void read_cypher(char** cypher_a, char** cypher_b){
     }
     file_content[index_counter] = '\0';
 
-    separate_cyphers(file_content,size,cypher_a,cypher_b);
+    int counter = separate_cyphers(file_content,size,cypher_a,cypher_b);
     
     free(file_content);
     free(buf);
 
+    return counter;
 }
 
 char* read_quote(){
@@ -97,14 +100,29 @@ char* read_quote(){
             quote_index++;
         }
     }
+    quote[quote_index] = '\0';
     return quote;
+}
+
+
+void replace_string(char* s, char* s1, char* s2){
+    //use strstr();
+}
+
+
+char* encrypt_cypher(char *quote, char **cypher_a,char **cypher_b,int cypher_size){
+    char *cyphered = (char*) malloc(strlen(quote)*sizeof(char)+CYPHER_GAP);
+
+    replace_string(quote,cypher_a[0],cypher_b[0]);
+
+    return cyphered;
 }
 
 
 int main(int argc, char const *argv[])
 {
 
-    char **cypher_a,**cypher_b,*quote;
+    char **cypher_a,**cypher_b,*quote,*cyphered;
 
     //allocate memory for cypher_a and cypher_b;
     cypher_a = (char**) malloc(MAX_CYPHER * sizeof(*cypher_a));
@@ -115,11 +133,11 @@ int main(int argc, char const *argv[])
     }
 
     //read from cypher file
-    read_cypher(cypher_a,cypher_b);
+    int cypher_size = read_cypher(cypher_a,cypher_b);
 
     quote = read_quote();
 
-    printf("%s",quote);
+    cyphered = encrypt_cypher(quote,cypher_a,cypher_b,cypher_size);
 
     //Free allocated memory
     for(int i = 0; i < MAX_CYPHER; i++){
