@@ -10,6 +10,7 @@
 #define MAX_CYPHER_LENGTH 25
 #define QUOTE_SIZE BUF_SIZE * 10
 #define CYPHER_GAP 100
+#define CYPHER_WORDS 100
 
 
 
@@ -30,6 +31,18 @@ int separate_cyphers(char *array, int size,char **cypher_a, char **cypher_b){
             counter++;
         }
         split=strtok(NULL," ");
+    }
+    return counter;
+}
+
+int split_string(char *array, char *delim, char** split_arr){
+    char* split = strtok(array,delim);
+    int counter = 0;
+
+    while(split != NULL){
+        strcpy(split_arr[counter],split);
+        split=strtok(NULL," ");
+        counter++;
     }
     return counter;
 }
@@ -105,24 +118,67 @@ char* read_quote(){
 }
 
 
-void replace_string(char* s, char* s1, char* s2){
-    //use strstr();
-}
+int encrypt_cypher(char *quote, char **cypher_a,char **cypher_b,int cypher_size, char **cyphered){
+    int size;
+    char *pointer;
+    char stringToReplace[CYPHER_GAP];
+    char stringToCat[CYPHER_GAP/5];
 
+    //splits quote into cyphered multidimensional array cyphered.
+    size = split_string(quote," ",cyphered);
 
-char* encrypt_cypher(char *quote, char **cypher_a,char **cypher_b,int cypher_size){
-    char *cyphered = (char*) malloc(strlen(quote)*sizeof(char)+CYPHER_GAP);
+    for(int i = 0; i < size; i++){
+        for(int j = 0; j < cypher_size; j++){
+            //verify if cypher_a[i] is the current word and replace it with its respective cypher
+            pointer = strstr(cyphered[i],cypher_a[j]);
+            if(pointer != NULL){
 
-    replace_string(quote,cypher_a[0],cypher_b[0]);
+                strcpy(stringToReplace,cypher_b[j]);
 
-    return cyphered;
+                int dif = strlen(cyphered[i]) - strlen(cypher_a[j]);
+
+                if(dif > 0){
+                    for(int k = 0; k < dif; k++){
+                        stringToCat[k] = cyphered[i][k+strlen(cypher_a[j])];
+                    }
+                }
+                stringToCat[dif] = '\0';
+
+                strcat(stringToReplace,stringToCat);
+                strcpy(pointer,stringToReplace);
+                break;
+            }
+            //verify if cypher_b[i] is the current word and replace it with its respective cypher
+            pointer = strstr(cyphered[i],cypher_b[j]);
+            if(pointer != NULL){
+                strcpy(stringToReplace,cypher_a[j]);
+
+                int dif = strlen(cyphered[i]) - strlen(cypher_b[j]);
+
+                if(dif > 0){
+                    for(int k = 0; k < dif; k++){
+                        stringToCat[k] = cyphered[i][k+strlen(cypher_b[j])];
+                    }
+                }
+                stringToCat[dif] = '\0';
+
+                strcat(stringToReplace,stringToCat);
+                strcpy(pointer,stringToReplace);
+                break;
+            }
+        }
+    }
+    
+    return size;
 }
 
 
 int main(int argc, char const *argv[])
 {
 
-    char **cypher_a,**cypher_b,*quote,*cyphered;
+    char **cypher_a,**cypher_b,*quote,**cyphered;
+    int size; 
+
 
     //allocate memory for cypher_a and cypher_b;
     cypher_a = (char**) malloc(MAX_CYPHER * sizeof(*cypher_a));
@@ -132,14 +188,27 @@ int main(int argc, char const *argv[])
         cypher_b[i] = (char*) malloc(MAX_CYPHER_LENGTH * sizeof(*cypher_b[i]));
     }
 
+    //allocating memory for cyphered
+    cyphered = (char**) malloc(CYPHER_WORDS*sizeof(char*));
+    for(int i = 0; i < CYPHER_WORDS; i++){
+        cyphered[i] = (char*) malloc(BUF_SIZE * 2 * sizeof(char));
+    }
+
     //read from cypher file
     int cypher_size = read_cypher(cypher_a,cypher_b);
 
+    //read quote from stdin
     quote = read_quote();
 
-    cyphered = encrypt_cypher(quote,cypher_a,cypher_b,cypher_size);
+    size = encrypt_cypher(quote,cypher_a,cypher_b,cypher_size,cyphered);
+    
+    
+    for(int i = 0 ; i < size; i++){
+        printf("%s ",cyphered[i]);
+    }
+    
 
-    //Free allocated memory
+    //Free allocated memory for cypher_a and cypher_b
     for(int i = 0; i < MAX_CYPHER; i++){
         free(cypher_a[i]);
         free(cypher_b[i]);
@@ -147,6 +216,13 @@ int main(int argc, char const *argv[])
     free(cypher_a);
     free(cypher_b);
 
+    //Free allocated memory for cyphered
+    for(int i = 0; i < CYPHER_WORDS; i++){
+       free(cyphered[i]);
+    }
+    free(cyphered);
+
+    //Free allocated memory for quote
     free(quote);
 
     return 0;
