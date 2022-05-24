@@ -4,12 +4,31 @@
   
 int main(int argc, char const *argv[])
 {
+    int n;
+    if (argc == 1){
+        printf("usage: phrases [-l] file\n");
+        return 1;
+    }
+    else if(argc == 2){
+        n = 1;
+    }
+    else if(argc == 3){
+        if (strcmp(argv[1], "-1") == 0){
+            n = 2;
+        }
+        else {
+            printf("Wrong input\n");
+            return 1;
+        }
+        
+    }
+    
 #define BUF_SIZE 256
 #define CHUNK_SIZE (BUF_SIZE - 1)
 
     // auxiliar buffer for storing chunks of text from the file
     char buf[BUF_SIZE];
-    const char *filename = argv[1];
+    const char *filename = argv[n];
     FILE *fptr = fopen(filename, "r");
 
     if (fptr == NULL)
@@ -17,8 +36,10 @@ int main(int argc, char const *argv[])
         printf("Cannot open file \n");
         exit(0);
     }
-    int a = 2;
-    printf("[1] ");
+    int a = 1;
+    if (n == 2){
+        printf("[1] ");
+    }
     while (!feof(fptr))
     {
         int count;
@@ -26,13 +47,23 @@ int main(int argc, char const *argv[])
         if (ferror(fptr))
             exit(0);
         buf[count] = '\0';
+        int check = 0;
         for (int i = 0; i < strlen(buf); i++) {
+            if (check == 1 && n ==2){
+                printf("\n[%i] ",a);
+            }
+            check = 0;
             if (buf[i] == '.' || buf[i] == '!' || buf[i] == '?'){
                 if (i + 1 == strlen(buf)) {
-                    printf("%c",buf[i]);
+                    if (n == 2){
+                        printf("%c",buf[i]);
+                    }
                     break;
                 }
-                printf("%c\n[%i] ",buf[i] ,a);
+                check = 1;
+                if (n == 2){
+                    printf("%c",buf[i]);
+                }
                 a++;
                 i++;
                 while (buf[i + 1] == ' '){
@@ -43,9 +74,15 @@ int main(int argc, char const *argv[])
                 continue;
             }
             else {
-                printf("%c",buf[i]);
+                if (n == 2){
+                    printf("%c",buf[i]);
+                }
             }
         }
+    }
+    a--;
+    if (n == 1){
+        printf("%i",a);
     }
     printf("\n");
     fclose(fptr);
