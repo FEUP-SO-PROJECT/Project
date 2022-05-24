@@ -10,13 +10,13 @@
 
 
 
-int insert_array(char *array,int size,int index,char value){
-    if(index >= size){
-        size += BUF_SIZE;
-        array = (char*) realloc(array,size*sizeof(char));
+char* insert_array(char *array,int *size,int index,char value){
+    if(index >= *size){
+        *size = *size + BUF_SIZE;
+        array = (char*) realloc(array,(*size)*sizeof(char));
     }
     array[index] = value;
-    return size;
+    return array;
 }
 
 
@@ -57,7 +57,7 @@ void read_cypher(char** cypher_a, char** cypher_b){
             if(buf[i] == '\n'){
                 continue;
             }
-            size = insert_array(file_content,size,index_counter,buf[i]);
+            file_content = insert_array(file_content,&size,index_counter,buf[i]);
             index_counter++;
         }
     }
