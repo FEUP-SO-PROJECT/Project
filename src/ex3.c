@@ -1,14 +1,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define CYPHER_PATH "cypher.txt"
-#define BUF_SIZE 256
+#define BUF_SIZE 30
 #define CHUNK_SIZE (BUF_SIZE - 1)
 #define MAX_CYPHER 25
 #define MAX_CYPHER_LENGTH 25
+#define QUOTE_SIZE BUF_SIZE * 10
 
 
+
+void separate_cyphers(char *array, int size,char **cypher_a, char **cypher_b){
+    char* split = strtok(array," ");
+    bool flag = true;
+    int counter = 0;
+
+    while(split != NULL)
+    {
+        if(flag){
+            strcpy(cypher_a[counter],split);
+            flag = false;
+        }     
+        else{
+            strcpy(cypher_b[counter],split);
+            flag = true;
+            counter++;
+        }
+        split=strtok(NULL," ");
+    }
+}
 
 char* insert_array(char *array,int *size,int index,char value){
     if(index >= *size){
@@ -18,7 +40,6 @@ char* insert_array(char *array,int *size,int index,char value){
     array[index] = value;
     return array;
 }
-
 
 void read_cypher(char** cypher_a, char** cypher_b){
     FILE *fptr = fopen(CYPHER_PATH, "r");
@@ -35,15 +56,6 @@ void read_cypher(char** cypher_a, char** cypher_b){
         exit(1);
     }
 
-    /*
-    while(fgets(buf,BUF_SIZE,fptr)){
-        for(int i = 0; i < strlen(buf);i++){
-            if(buf[i] != '\n') printf("%c",buf[i]);
-        }
-    }
-    */
-
-    
     //reading file by chunks
     while (!feof(fptr))
     {
@@ -55,28 +67,44 @@ void read_cypher(char** cypher_a, char** cypher_b){
         //iterating through buffer
         for (int i = 0; i < count; i++) {
             if(buf[i] == '\n'){
-                continue;
+                buf[i] = ' ';
             }
             file_content = insert_array(file_content,&size,index_counter,buf[i]);
             index_counter++;
         }
     }
     file_content[index_counter] = '\0';
-    
-    for(int i = 0; i < index_counter; i++){
-        printf("%c",file_content[i]);
-    }
-    printf("\n");
 
+    separate_cyphers(file_content,size,cypher_a,cypher_b);
+    
     free(file_content);
     free(buf);
+
+}
+
+char* read_quote(){
+    
+    //allocate memory for quote;
+    char* quote = (char*) malloc(QUOTE_SIZE * sizeof(char));
+    int quote_size = (QUOTE_SIZE*sizeof(char));
+    int quote_index = 0;
+
+    char buf[BUF_SIZE];
+    while (fgets(buf,CHUNK_SIZE,stdin) != NULL)
+    {
+        for(int i = 0; i < strlen(buf); i++){
+            insert_array(quote,&quote_size,quote_index,buf[i]);
+            quote_index++;
+        }
+    }
+    return quote;
 }
 
 
 int main(int argc, char const *argv[])
 {
 
-    char **cypher_a,**cypher_b;
+    char **cypher_a,**cypher_b,*quote;
 
     //allocate memory for cypher_a and cypher_b;
     cypher_a = (char**) malloc(MAX_CYPHER * sizeof(*cypher_a));
@@ -89,6 +117,10 @@ int main(int argc, char const *argv[])
     //read from cypher file
     read_cypher(cypher_a,cypher_b);
 
+    quote = read_quote();
+
+    printf("%s",quote);
+
     //Free allocated memory
     for(int i = 0; i < MAX_CYPHER; i++){
         free(cypher_a[i]);
@@ -96,6 +128,8 @@ int main(int argc, char const *argv[])
     }
     free(cypher_a);
     free(cypher_b);
+
+    free(quote);
 
     return 0;
 }
