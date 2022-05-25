@@ -5,11 +5,7 @@
 int main(int argc, char const *argv[])
 {
     int n;
-    if (argc == 1){
-        printf("usage: phrases [-l] file\n");
-        return 1;
-    }
-    else if(argc == 2){
+    if(argc == 2){
         n = 1;
     }
     else if(argc == 3){
@@ -21,6 +17,10 @@ int main(int argc, char const *argv[])
             return 1;
         }
         
+    }
+    else{
+        printf("usage: phrases [-l] file\n");
+        return 1;
     }
     
 #define BUF_SIZE 256
