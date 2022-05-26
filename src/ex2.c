@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
             }
             m = x;
         }
-        else if(x != y){
+        if(x != y){
             printf ("file with different dimentions\n");
             return 1;
         }
@@ -97,6 +97,7 @@ int main(int argc, char *argv[])
             for (int i = 0; i < n; i++){
                 partials[i + m*n*2 + n * h] = partials[i + n * h] + partials[i + m*n + n * h];
             }
+            //printf("[son] pid %d from [parent] pid %d\n", getpid(), getppid());
             exit(0);
         }
     }

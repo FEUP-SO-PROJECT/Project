@@ -40,6 +40,9 @@ int main(int argc, char const *argv[])
     if (n == 2){
         printf("[1] ");
     }
+
+    int check = 0;
+    int flag = 1;
     while (!feof(fptr))
     {
         int count;
@@ -47,13 +50,21 @@ int main(int argc, char const *argv[])
         if (ferror(fptr))
             exit(0);
         buf[count] = '\0';
-        int check = 0;
         for (int i = 0; i < strlen(buf); i++) {
+            while ((buf[i] == ' ' || buf[i] == '\n') && flag == 1){
+                    i++;
+                }
+            flag = 0;
+            if (i == strlen(buf)){
+                a--;
+                break;
+            }
             if (check == 1 && n ==2){
                 printf("\n[%i] ",a);
             }
             check = 0;
             if (buf[i] == '.' || buf[i] == '!' || buf[i] == '?'){
+                flag = 1;
                 if (i + 1 == strlen(buf)) {
                     if (n == 2){
                         printf("%c",buf[i]);
@@ -65,7 +76,6 @@ int main(int argc, char const *argv[])
                     printf("%c",buf[i]);
                 }
                 a++;
-                i++;
                 while (buf[i + 1] == ' '){
                     i++;
                 }
@@ -80,7 +90,8 @@ int main(int argc, char const *argv[])
             }
         }
     }
-    a--;
+    if (a == 0)
+        a++;
     if (n == 1){
         printf("%i",a);
     }
