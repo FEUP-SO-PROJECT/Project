@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <errno.h>
+
 
 #define CYPHER_PATH "cypher.txt"
 #define BUF_SIZE 30
@@ -11,6 +15,9 @@
 #define QUOTE_SIZE BUF_SIZE * 10
 #define CYPHER_GAP 100
 #define CYPHER_WORDS 100
+#define LINESIZE 1024
+#define READ_END 0
+#define WRITE_END 1
 
 
 
@@ -176,54 +183,115 @@ int encrypt_cypher(char *quote, char **cypher_a,char **cypher_b,int cypher_size,
 int main(int argc, char const *argv[])
 {
 
-    char **cypher_a,**cypher_b,*quote,**cyphered;
-    int size; 
+    char **cypher_a,**cypher_b,*quote,**cyphered,line[LINESIZE],cyphered_line[LINESIZE];
+    int size,nbytes, fd1[2],fd2[2];
+    pid_t pid;
 
-
-    //allocate memory for cypher_a and cypher_b;
-    cypher_a = (char**) malloc(MAX_CYPHER * sizeof(*cypher_a));
-    cypher_b = (char**) malloc(MAX_CYPHER * sizeof(*cypher_b));
-    for(int i = 0; i < MAX_CYPHER; i++){
-        cypher_a[i] = (char*) malloc(MAX_CYPHER_LENGTH * sizeof(*cypher_a[i]));
-        cypher_b[i] = (char*) malloc(MAX_CYPHER_LENGTH * sizeof(*cypher_b[i]));
+    if (pipe(fd1) < 0 || pipe(fd2) < 0) {
+        perror("pipe error");
+        exit(EXIT_FAILURE);
+    }
+    if ((pid = fork()) < 0) {
+        perror("fork error");
+        exit(EXIT_FAILURE);
     }
 
-    //allocating memory for cyphered
-    cyphered = (char**) malloc(CYPHER_WORDS*sizeof(char*));
-    for(int i = 0; i < CYPHER_WORDS; i++){
-        cyphered[i] = (char*) malloc(BUF_SIZE * 2 * sizeof(char));
+    else if (pid > 0) {
+        /* parent */
+        //read quote from stdin
+        quote = read_quote();
+
+        //process management
+        close(fd1[READ_END]);
+        snprintf(line, strlen(quote), "%s", quote);
+        if ((nbytes = write(fd1[WRITE_END], line, strlen(line))) < 0) {
+            fprintf(stderr, "Unable to write to pipe: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        close(fd1[WRITE_END]);
+        /* wait for child and exit */
+        if ( waitpid(pid, NULL, 0) < 0) {
+            fprintf(stderr, "Cannot wait for child: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        //If the program reaches this point, the child process has received and cyphered the input.
+        close(fd2[WRITE_END]);
+        if ((nbytes = read(fd2[READ_END], cyphered_line, LINESIZE)) < 0 ) {
+            fprintf(stderr, "Unable to read from pipe: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        close(fd2[READ_END]);
+
+        write(STDOUT_FILENO,cyphered_line,strlen(cyphered_line));
+
+        //Free allocated memory for quote
+        free(quote);
+
+        exit(EXIT_SUCCESS);
     }
+    else {
+        /* child */
+        close(fd1[WRITE_END]);
+        if ((nbytes = read(fd1[READ_END], line, LINESIZE)) < 0 ) {
+            fprintf(stderr, "Unable to read from pipe: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        close(fd1[READ_END]);
+        /* write message from parent */
+        //allocate memory for cypher_a and cypher_b;
+        cypher_a = (char**) malloc(MAX_CYPHER * sizeof(*cypher_a));
+        cypher_b = (char**) malloc(MAX_CYPHER * sizeof(*cypher_b));
+        for(int i = 0; i < MAX_CYPHER; i++){
+            cypher_a[i] = (char*) malloc(MAX_CYPHER_LENGTH * sizeof(*cypher_a[i]));
+            cypher_b[i] = (char*) malloc(MAX_CYPHER_LENGTH * sizeof(*cypher_b[i]));
+        }
 
-    //read from cypher file
-    int cypher_size = read_cypher(cypher_a,cypher_b);
+        //allocating memory for cyphered
+        cyphered = (char**) malloc(CYPHER_WORDS*sizeof(char*));
+        for(int i = 0; i < CYPHER_WORDS; i++){
+            cyphered[i] = (char*) malloc(BUF_SIZE * 2 * sizeof(char));
+        }
 
-    //read quote from stdin
-    quote = read_quote();
+        //read from cypher file
+        int cypher_size = read_cypher(cypher_a,cypher_b);
 
-    size = encrypt_cypher(quote,cypher_a,cypher_b,cypher_size,cyphered);
-    
-    
-    for(int i = 0 ; i < size; i++){
-        printf("%s ",cyphered[i]);
+        size = encrypt_cypher(line,cypher_a,cypher_b,cypher_size,cyphered);
+
+        int index = 0;
+
+        for(int i = 0 ; i < size; i++){
+            for(int j = 0; j < strlen(cyphered[i]); j++){
+                cyphered_line[index] = cyphered[i][j];
+                index++;
+            }
+            if(i != size-1) cyphered_line[index] = ' ';
+            index++;
+        }
+        //Send data to parent process
+        close(fd2[READ_END]);
+        if ((nbytes = write(fd2[WRITE_END], cyphered_line, strlen(cyphered_line))) < 0) {
+            fprintf(stderr, "Unable to write to pipe: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        close(fd2[WRITE_END]);
+
+        //Free allocated memory for cyphered
+        for(int i = 0; i < CYPHER_WORDS; i++){
+            free(cyphered[i]);
+        }
+        free(cyphered);
+
+        //Free allocated memory for cypher_a and cypher_b
+        for(int i = 0; i < MAX_CYPHER; i++){
+            free(cypher_a[i]);
+            free(cypher_b[i]);
+        }
+        free(cypher_a);
+        free(cypher_b);
+
+        /* exit gracefully */
+        exit(EXIT_SUCCESS);
     }
-    
-
-    //Free allocated memory for cypher_a and cypher_b
-    for(int i = 0; i < MAX_CYPHER; i++){
-        free(cypher_a[i]);
-        free(cypher_b[i]);
-    }
-    free(cypher_a);
-    free(cypher_b);
-
-    //Free allocated memory for cyphered
-    for(int i = 0; i < CYPHER_WORDS; i++){
-       free(cyphered[i]);
-    }
-    free(cyphered);
-
-    //Free allocated memory for quote
-    free(quote);
-
     return 0;
 }
