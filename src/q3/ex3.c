@@ -8,14 +8,14 @@
 
 
 #define CYPHER_PATH "cypher.txt"
-#define BUF_SIZE 30
+#define BUF_SIZE 256
 #define CHUNK_SIZE (BUF_SIZE - 1)
 #define MAX_CYPHER 25
 #define MAX_CYPHER_LENGTH 25
 #define QUOTE_SIZE BUF_SIZE * 10
 #define CYPHER_GAP 100
 #define CYPHER_WORDS 100
-#define LINESIZE 1024
+#define LINESIZE 4096
 #define READ_END 0
 #define WRITE_END 1
 
