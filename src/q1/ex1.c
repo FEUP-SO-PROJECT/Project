@@ -9,7 +9,7 @@ int main(int argc, char const *argv[])
         n = 1;
     }
     else if(argc == 3){
-        if (strcmp(argv[1], "-1") == 0){
+        if (strcmp(argv[1], "-l") == 0){
             n = 2;
         }
         else {
